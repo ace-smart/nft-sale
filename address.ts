@@ -1,7 +1,8 @@
 export const address = {
     mainnet: {
-        byb: "0xAd52DdBFFf5abC8cfb5485D7116Ef707E794211B",
-        lp: "0xDbF18e42Ad3C348571a593126D44c1871bB0dF6e",
+        byb: "0xac02c166330029db5Fb90B889c8E5390cb855609",
+        // byb: "0xAd52DdBFFf5abC8cfb5485D7116Ef707E794211B",
+        lp: "0xF6406DDE9259012A8c8B7d8f5c1802e7b0277851",
         unirouter: "0x10ED43C718714eb63d5aA57B78B54704E256024E",
         antiBot: "0x8EFDb3b642eb2a20607ffe0A56CFefF6a95Df002",
         bybNFT: {

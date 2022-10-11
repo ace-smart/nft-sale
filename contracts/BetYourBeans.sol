@@ -41,7 +41,7 @@ contract BetYourBeans is ERC20, Ownable {
     uint public constant TOTAL_SUPPLY = 1_000_000_000 ether;
     uint public constant MAX_FEE = 10000;
     uint public constant FEE_LIMIT = 500; // maximum 5%
-    uint public minimumTokensBeforeSwap = uint(10_000 ether);
+    uint public minimumTokensBeforeSwap = uint(100_000 ether);
     uint public maxTradeLimit = TOTAL_SUPPLY;
 
     bool inSwapAndLiquify;
@@ -123,15 +123,21 @@ contract BetYourBeans is ERC20, Ownable {
 
             uint _totalFee = treasuryFee.add(devFee);
             uint _amountBNB = address(this).balance;
-            if (treasuryFee > 0) payable(treasuryWallet).call{
-                value: _amountBNB.mul(treasuryFee).div(_totalFee),
-                gas: 30000
-            }("");
+            if (treasuryFee > 0) {
+                (bool ret, ) = payable(treasuryWallet).call{
+                    value: _amountBNB.mul(treasuryFee).div(_totalFee),
+                    gas: 30000
+                }("");
+                require (ret, "Treasury wallet can't receive the fee");
+            }
 
-            if (devFee > 0) payable(devWallet).call{
-                value: _amountBNB.mul(devFee).div(_totalFee),
-                gas: 30000
-            }("");
+            if (devFee > 0) {
+                (bool ret, ) = payable(devWallet).call{
+                    value: _amountBNB.mul(devFee).div(_totalFee),
+                    gas: 30000
+                }("");
+                require (ret, "Dev wallet can't receive the fee");
+            }
             
             inSwapAndLiquify = false;
         }
