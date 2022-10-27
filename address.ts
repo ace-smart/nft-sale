@@ -24,9 +24,9 @@ export const address = {
             sale: "0x26fA33A98aD16Ba1Ee86a91E40e1A54a138e4131"
         },
         bybStaking: {
-            rewarder: "0x5a2c253d8a4869992C2e3780C93B1BBA619FaFc3",
-            token: "0x433CC738592257e3EF9CEe9b1B29c0dc417F9353",
-            nft: "0x7dF988d3Ab2878834E61b0EA1441113753954543"
+            rewarder: "0xA12c5b8AAdDfC3458495Ec17A48c091d7EB0885e",
+            token: "0xDe7BBFc300C31AC706869f6a0141BDBBB92487FB",
+            nft: "0xAB6403e5FD77D266EE048Dc1CE0873bbE3Db7d77"
         }
     }
 }

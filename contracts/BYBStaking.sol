@@ -21,7 +21,6 @@ contract BYBStaking is Ownable, Pausable, ReentrancyGuard {
 
     struct UserInfo {
         uint256 amount;
-        uint256 shares;
         uint256 rewardDebt;
         uint256 pendingRewards;
         uint256 depositedAt;
@@ -100,12 +99,13 @@ contract BYBStaking is Ownable, Pausable, ReentrancyGuard {
         stakingToken = IERC20(_token);
         rewarder = IRewarder(_rewarder);
 
-        addPool(1, 0, 0);
+        addPool(1, 0, block.timestamp);
+        endTime = block.timestamp;
 
         _pause();
     }
 
-    function addPool(uint256 _allocPoint, uint256 _lockupDuration, uint256 _startTime) public onlyOwner {
+    function addPool(uint256 _allocPoint, uint256 _lockupDuration, uint256 _startTime) internal onlyOwner {
         require (_startTime == 0 || _startTime >= block.timestamp, "!start time");
 
         poolInfo.push(
@@ -120,25 +120,6 @@ contract BYBStaking is Ownable, Pausable, ReentrancyGuard {
         );
 
         totalAllocPoint += _allocPoint;
-    }
-
-    function setPool(uint _pid, uint _allocPoint, uint _lockupDuration) external onlyOwner {
-        PoolInfo storage pool = poolInfo[_pid];
-        totalAllocPoint = totalAllocPoint - pool.allocPoint + _allocPoint;
-        pool.lockupDuration = _lockupDuration;
-        pool.allocPoint = _allocPoint;
-    }
-
-    function setStartTime(uint _pid, uint _startTimeInMins, bool _updateAcc) external onlyOwner {
-        PoolInfo storage pool = poolInfo[_pid];
-
-        if (pool.totalSupply > 0 && _updateAcc && rewardRate > 0) {
-            uint256 multiplier = block.timestamp.sub(pool.lastRewardTime);
-            uint256 rewards = multiplier.mul(rewardRate).mul(pool.allocPoint).div(totalAllocPoint);
-            pool.rewardsAmount = pool.rewardsAmount.add(rewards);
-            pool.accEulerPerShare = pool.accEulerPerShare.add(rewards.mul(1e12).div(pool.totalSupply));
-        }
-        pool.lastRewardTime = block.timestamp.add(_startTimeInMins.mul(1 minutes));
     }
 
     function totalSupply() external view returns (uint) {
@@ -245,14 +226,10 @@ contract BYBStaking is Ownable, Pausable, ReentrancyGuard {
         rewardRate = _rewardRate;
     }
 
-    function expandEndTime(uint _mins) external onlyOwner {
-        require (_mins > 0, "!period");
+    function setEndTime(uint _endTime) external onlyOwner {
+        require (_endTime > block.timestamp, "!end time");
 
-        if (endTime >= block.timestamp) {
-            endTime += _mins.mul(1 minutes);
-        } else {
-            endTime = block.timestamp + _mins.mul(1 minutes);
-        }
+        endTime = _endTime;
     }
 
     function _removeUser(address _user) internal {

@@ -43,7 +43,7 @@ async function deploy() {
 
     const rewarderFactory: Rewarder__factory = new Rewarder__factory(deployer);
     let rewarder: Rewarder = rewarderFactory.attach(rewarderAddress).connect(deployer);
-    if ("redeploy" && false) {
+    if ("redeploy" && true) {
         rewarder = await rewarderFactory.deploy();
     }
     console.log(`Deployed Rewarder... (${rewarder.address})`);

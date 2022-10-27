@@ -24,7 +24,6 @@ contract NFTStaking is ERC1155Holder, Ownable, Pausable, ReentrancyGuard {
 
     struct UserInfo {
         uint256 amount;
-        uint256 shares;
         uint256 rewardDebt;
         uint256 pendingRewards;
         uint256 depositedAt;
@@ -110,6 +109,8 @@ contract NFTStaking is ERC1155Holder, Ownable, Pausable, ReentrancyGuard {
         weightMap[3] = 127229 ether;
         weightMap[4] = 145405 ether;
 
+        lastRewardTime = block.timestamp;
+
         _pause();
     }
 
@@ -126,16 +127,6 @@ contract NFTStaking is ERC1155Holder, Ownable, Pausable, ReentrancyGuard {
     function updateNft(uint _id, uint _weight) external onlyOwner {
         require (exists(_id), "!existing nft");
         weightMap[_id] = _weight;
-    }
-
-    function setStartTime(uint _startTimeInMins, bool _updateAcc) external onlyOwner {
-        if (totalSupply > 0 && _updateAcc && rewardRate > 0) {
-            uint256 multiplier = block.timestamp.sub(lastRewardTime);
-            uint256 rewards = multiplier.mul(rewardRate);
-            rewardsAmount = rewardsAmount.add(rewards);
-            accEulerPerShare = accEulerPerShare.add(rewards.mul(1e12).div(totalSupply));
-        }
-        lastRewardTime = block.timestamp.add(_startTimeInMins.mul(1 minutes));
     }
 
     function totalSupplyForNft() external view returns (uint) {
@@ -239,14 +230,10 @@ contract NFTStaking is ERC1155Holder, Ownable, Pausable, ReentrancyGuard {
         rewardRate = _rewardRate;
     }
 
-    function expandEndTime(uint _mins) external onlyOwner {
-        require (_mins > 0, "!period");
+    function setEndTime(uint _endTime) external onlyOwner {
+        require (_endTime > block.timestamp, "!end time");
 
-        if (endTime >= block.timestamp) {
-            endTime += _mins.mul(1 minutes);
-        } else {
-            endTime = block.timestamp + _mins.mul(1 minutes);
-        }
+        endTime = _endTime;
     }
 
     function _removeUser(address _user) internal {

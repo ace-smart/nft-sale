@@ -49,4 +49,6 @@ contract Rewarder is Ownable, ReentrancyGuard, AccessControl {
     function setPool(address _pool, bool _flag) external onlyOwner {
         _flag ? grantRole(POOL_ROLE, _pool) : revokeRole(POOL_ROLE, _pool);
     }
+
+    receive() external payable {}
 }
