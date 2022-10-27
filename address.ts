@@ -8,6 +8,11 @@ export const address = {
         bybNFT: {
             nft: "0xD0586F014F3d3896cC6bd3f7892BDcF139ffd700",
             sale: "0xa6a42699cF7903D45b9DD5eCa9C9CeFEaf6deF77"
+        },
+        bybStaking: {
+            rewarder: "0x2A404C2F47Ffa68E3A58FdF1808A722908EA8b33",
+            token: "0x2A404C2F47Ffa68E3A58FdF1808A722908EA8b33",
+            nft: "0x2A404C2F47Ffa68E3A58FdF1808A722908EA8b33"
         }
     },
     testnet: {
@@ -15,8 +20,13 @@ export const address = {
         lp: "0xca6e073dc1f5222ef48976694c860bc54e47c23e",
         unirouter: "0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3",
         bybNFT: {
-            nft: "0x2A404C2F47Ffa68E3A58FdF1808A722908EA8b33",
-            sale: "0x9c839dD5c956dc2155893237114d820CaE01db3a"
+            nft: "0x2d1e20895041ABeC94840f7aD589a77Cc99E406b",
+            sale: "0x26fA33A98aD16Ba1Ee86a91E40e1A54a138e4131"
+        },
+        bybStaking: {
+            rewarder: "0x5a2c253d8a4869992C2e3780C93B1BBA619FaFc3",
+            token: "0x433CC738592257e3EF9CEe9b1B29c0dc417F9353",
+            nft: "0x7dF988d3Ab2878834E61b0EA1441113753954543"
         }
     }
 }

@@ -13,6 +13,10 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
+interface IRewarder {
+    function transferRewards(address _to, uint _amount) external returns (uint);
+}
+
 contract NFTStaking is ERC1155Holder, Ownable, Pausable, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -34,7 +38,7 @@ contract NFTStaking is ERC1155Holder, Ownable, Pausable, ReentrancyGuard {
 
     // IERC20 public immutable stakingToken;
     IERC1155 public immutable nft;
-    IERC20 public immutable rewardToken;
+    IRewarder public immutable rewarder;
 
     mapping(address => UserInfo) public userInfo;
     mapping(address => mapping(uint => uint)) public userNftMap;
@@ -92,9 +96,9 @@ contract NFTStaking is ERC1155Holder, Ownable, Pausable, ReentrancyGuard {
         if (staked == false) _removeUser(msg.sender);
     }
 
-    constructor(address _nft, address _reward) {
+    constructor(address _nft, address _rewarder) {
         nft = IERC1155(_nft);
-        rewardToken = IERC20(_reward);
+        rewarder = IRewarder(_rewarder);
 
         nfts.push(1);
         nfts.push(2);
@@ -148,11 +152,6 @@ contract NFTStaking is ERC1155Holder, Ownable, Pausable, ReentrancyGuard {
 
     }
 
-    function availableRewards() public view returns (uint) {
-        if (rewardToken.balanceOf(address(this)) <= rewardsAmount) return 0;
-        return rewardToken.balanceOf(address(this)).sub(rewardsAmount);
-    }
-
     function userCount() external view returns (uint) {
         return users.length();
     }
@@ -200,7 +199,7 @@ contract NFTStaking is ERC1155Holder, Ownable, Pausable, ReentrancyGuard {
     function claim() public updateReward returns (uint) {
         UserInfo storage user = userInfo[msg.sender];
 
-        uint256 claimedAmount = safeTransferRewards(msg.sender, user.pendingRewards);
+        uint256 claimedAmount = rewarder.transferRewards(msg.sender, user.pendingRewards);
         user.pendingRewards = user.pendingRewards.sub(claimedAmount);
         user.claimedAt = block.timestamp;
         rewardsAmount -= claimedAmount;
@@ -222,16 +221,6 @@ contract NFTStaking is ERC1155Holder, Ownable, Pausable, ReentrancyGuard {
         }
         
         return user.amount.mul(curAccPerShare).div(1e12).sub(user.rewardDebt).add(user.pendingRewards);
-    }
-
-    function safeTransferRewards(address _user, uint _amount) internal returns (uint) {
-        uint curBal = rewardToken.balanceOf(address(this));
-        require (curBal > 0, "!rewards");
-
-        if (_amount > curBal) _amount = curBal;
-        rewardToken.safeTransfer(_user, _amount);
-
-        return _amount;
     }
 
     function setRewardRate(uint256 _rewardRate) public onlyOwner {
@@ -258,9 +247,6 @@ contract NFTStaking is ERC1155Holder, Ownable, Pausable, ReentrancyGuard {
         } else {
             endTime = block.timestamp + _mins.mul(1 minutes);
         }
-
-        uint remaining = availableRewards();
-        setRewardRate(remaining.div(endTime.sub(block.timestamp)));
     }
 
     function _removeUser(address _user) internal {

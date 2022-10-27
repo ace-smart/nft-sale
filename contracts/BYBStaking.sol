@@ -10,6 +10,10 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+interface IRewarder {
+    function transferRewards(address _to, uint _amount) external returns (uint);
+}
+
 contract BYBStaking is Ownable, Pausable, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -35,7 +39,7 @@ contract BYBStaking is Ownable, Pausable, ReentrancyGuard {
     }
 
     IERC20 public immutable stakingToken;
-    IERC20 public immutable rewardToken;
+    IRewarder public immutable rewarder;
 
     PoolInfo[] public poolInfo;
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
@@ -92,9 +96,9 @@ contract BYBStaking is Ownable, Pausable, ReentrancyGuard {
         if (staked == false) _removeUser(msg.sender);
     }
 
-    constructor(address _token, address _reward) {
+    constructor(address _token, address _rewarder) {
         stakingToken = IERC20(_token);
-        rewardToken = IERC20(_reward);
+        rewarder = IRewarder(_rewarder);
 
         addPool(1, 0, 0);
 
@@ -145,16 +149,6 @@ contract BYBStaking is Ownable, Pausable, ReentrancyGuard {
         return _totalSupply;
     }
 
-    function availableRewards() public view returns (uint) {
-        uint pendings;
-        for (uint i = 0; i < poolInfo.length; i++) {
-            pendings += poolInfo[i].rewardsAmount;
-        }
-        
-        if (rewardToken.balanceOf(address(this)) <= pendings) return 0;
-        return rewardToken.balanceOf(address(this)).sub(pendings);
-    }
-
     function getPoolCount() external view returns (uint) {
         return poolInfo.length;
     }
@@ -163,11 +157,11 @@ contract BYBStaking is Ownable, Pausable, ReentrancyGuard {
         return users.length();
     }
 
-    function deposit(uint256 _pid, uint256 _amount) external whenNotPaused nonReentrant updateReward(_pid) updateUserList {
+    function deposit(uint256 _amount) external whenNotPaused nonReentrant updateReward(0) updateUserList {
         require (block.timestamp < endTime, "pool already expired");
         require(_amount > 0, "!amount");
-        PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][msg.sender];
+        PoolInfo storage pool = poolInfo[0];
+        UserInfo storage user = userInfo[0][msg.sender];
 
         uint before = stakingToken.balanceOf(address(this));
         stakingToken.safeTransferFrom(msg.sender, address(this), _amount);
@@ -178,13 +172,13 @@ contract BYBStaking is Ownable, Pausable, ReentrancyGuard {
         user.depositedAt = block.timestamp;
         user.unlockedAt = 0;
 
-        emit Deposit(_pid, msg.sender, _amount);
+        emit Deposit(0, msg.sender, _amount);
     }
 
-    function withdraw(uint256 _pid, uint256 _amount) public nonReentrant updateReward(_pid) updateUserList {
+    function withdraw(uint256 _amount) public nonReentrant updateReward(0) updateUserList {
         require(_amount > 0, "!amount");
-        PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][msg.sender];
+        PoolInfo storage pool = poolInfo[0];
+        UserInfo storage user = userInfo[0][msg.sender];
         require (block.timestamp.sub(user.depositedAt) > pool.lockupDuration, "!available to withdraw");
         if (unlockDuration > 0) {
             require (user.unlockedAt > 0 && block.timestamp.sub(user.unlockedAt) > unlockDuration, "still locked");
@@ -195,39 +189,31 @@ contract BYBStaking is Ownable, Pausable, ReentrancyGuard {
         pool.totalSupply -= _amount;
         stakingToken.safeTransfer(msg.sender, _amount);
 
-        emit Withdraw(_pid, msg.sender, _amount);
+        emit Withdraw(0, msg.sender, _amount);
     }
 
-    function withdrawAll(uint _pid) external {
-        UserInfo storage user = userInfo[_pid][msg.sender];
-        withdraw(_pid, user.amount);
+    function withdrawAll() external {
+        UserInfo storage user = userInfo[0][msg.sender];
+        withdraw(user.amount);
     }
 
-    function claim(uint256 _pid) public updateReward(_pid) returns (uint) {
-        PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][msg.sender];
+    function claim() public updateReward(0) returns (uint) {
+        PoolInfo storage pool = poolInfo[0];
+        UserInfo storage user = userInfo[0][msg.sender];
 
-        uint256 claimedAmount = safeTransferRewards(msg.sender, user.pendingRewards);
+        uint256 claimedAmount = rewarder.transferRewards(msg.sender, user.pendingRewards);
         user.pendingRewards = user.pendingRewards.sub(claimedAmount);
         user.claimedAt = block.timestamp;
         pool.rewardsAmount -= claimedAmount;
 
-        emit Claim(_pid, msg.sender, claimedAmount);
+        emit Claim(0, msg.sender, claimedAmount);
 
         return claimedAmount;
     }
 
-    function claimForAll() external nonReentrant {
-        uint claimedAmount = 0;
-        for (uint i = 0; i < poolInfo.length; i++) {
-            claimedAmount += claim(i);
-        }
-        if (claimedAmount > 0) claimTimes++;
-    }
-
-    function claimable(uint256 _pid, address _user) public view returns (uint256) {
-        PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][_user];
+    function claimable(address _user) public view returns (uint256) {
+        PoolInfo storage pool = poolInfo[0];
+        UserInfo storage user = userInfo[0][_user];
         if (user.amount == 0) return 0;
         
         uint256 curAccPerShare = pool.accEulerPerShare;
@@ -240,41 +226,21 @@ contract BYBStaking is Ownable, Pausable, ReentrancyGuard {
         return user.amount.mul(curAccPerShare).div(1e12).sub(user.rewardDebt).add(user.pendingRewards);
     }
 
-    function claimableForAll(address _user) external view returns (uint256) {
-        uint amount = 0;
-        for (uint i = 0; i < poolInfo.length; i++) {
-            amount += claimable(i, _user);
-        }
-        return amount;
-    }
-
-    function safeTransferRewards(address _user, uint _amount) internal returns (uint) {
-        uint curBal = rewardToken.balanceOf(address(this));
-        require (curBal > 0, "!rewards");
-
-        if (_amount > curBal) _amount = curBal;
-        rewardToken.safeTransfer(_user, _amount);
-
-        return _amount;
-    }
-
     function setRewardRate(uint256 _rewardRate) public onlyOwner {
         require (_rewardRate > 0, "Rewards per second should be greater than 0!");
 
         // Update pool infos with old reward rate before setting new one first
         if (rewardRate > 0) {
-            for (uint i = 0; i < poolInfo.length; i++) {
-                PoolInfo storage pool = poolInfo[i];
-                if (pool.lastRewardTime >= block.timestamp) continue;
+            PoolInfo storage pool = poolInfo[0];
+            if (pool.lastRewardTime >= block.timestamp) revert ("expired");
 
-                if (pool.totalSupply > 0) {
-                    uint256 multiplier = block.timestamp.sub(pool.lastRewardTime);
-                    uint256 reward = multiplier.mul(rewardRate).mul(pool.allocPoint).div(totalAllocPoint);
-                    pool.rewardsAmount += reward;
-                    pool.accEulerPerShare += reward.mul(1e12).div(pool.totalSupply);
-                }
-                pool.lastRewardTime = block.timestamp;
+            if (pool.totalSupply > 0) {
+                uint256 multiplier = block.timestamp.sub(pool.lastRewardTime);
+                uint256 reward = multiplier.mul(rewardRate).mul(pool.allocPoint).div(totalAllocPoint);
+                pool.rewardsAmount += reward;
+                pool.accEulerPerShare += reward.mul(1e12).div(pool.totalSupply);
             }
+            pool.lastRewardTime = block.timestamp;
         }
         rewardRate = _rewardRate;
     }
@@ -287,9 +253,6 @@ contract BYBStaking is Ownable, Pausable, ReentrancyGuard {
         } else {
             endTime = block.timestamp + _mins.mul(1 minutes);
         }
-
-        uint remaining = availableRewards();
-        setRewardRate(remaining.div(endTime.sub(block.timestamp)));
     }
 
     function _removeUser(address _user) internal {
