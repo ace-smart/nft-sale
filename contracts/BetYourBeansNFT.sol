@@ -188,9 +188,9 @@ contract BetYourBeansNFTSale is Ownable, Pausable, ERC1155Holder, AccessControl,
             }("");
         }
 
-        if (bybNFT.isApprovedForAll(address(this), msg.sender) == false) {
-            bybNFT.setApprovalForAll(msg.sender, true);
-        }
+        // if (bybNFT.isApprovedForAll(address(this), msg.sender) == false) {
+        //     bybNFT.setApprovalForAll(msg.sender, true);
+        // }
 
         uint[] memory ids = new uint[](_amount);
         for (uint i = 0; i < _amount; i++) {
@@ -228,9 +228,9 @@ contract BetYourBeansNFTSale is Ownable, Pausable, ERC1155Holder, AccessControl,
         require (nfts.contains(_id), "!existing");
         require (_amount <= supplies[_id], "exceeded amount");
 
-        if (bybNFT.isApprovedForAll(address(this), msg.sender) == false) {
-            bybNFT.setApprovalForAll(msg.sender, true);
-        }
+        // if (bybNFT.isApprovedForAll(address(this), msg.sender) == false) {
+        //     bybNFT.setApprovalForAll(msg.sender, true);
+        // }
 
         bybNFT.safeTransferFrom(address(this), msg.sender, _id, _amount, "");
 
