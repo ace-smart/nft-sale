@@ -43,7 +43,7 @@ async function deploy() {
 
     const rewarderFactory: Rewarder__factory = new Rewarder__factory(deployer);
     let rewarder: Rewarder = rewarderFactory.attach(rewarderAddress).connect(deployer);
-    if ("redeploy" && true) {
+    if ("redeploy" && false) {
         rewarder = await rewarderFactory.deploy();
     }
     console.log(`Deployed Rewarder... (${rewarder.address})`);
@@ -57,7 +57,7 @@ async function deploy() {
 
     const nftStakingFactory: NFTStaking__factory = new NFTStaking__factory(deployer);
     let nftStaking: NFTStaking = nftStakingFactory.attach(nftStakingAddress).connect(deployer);
-    if ("redeploy" && true) {
+    if ("redeploy" && false) {
         nftStaking = await nftStakingFactory.deploy(nftAddress, rewarder.address);
     }
     console.log(`Deployed NFTStaking... (${nftStaking.address})`);

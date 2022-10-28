@@ -7,7 +7,8 @@ export const address = {
         antiBot: "0x8EFDb3b642eb2a20607ffe0A56CFefF6a95Df002",
         bybNFT: {
             nft: "0xD0586F014F3d3896cC6bd3f7892BDcF139ffd700",
-            sale: "0xa6a42699cF7903D45b9DD5eCa9C9CeFEaf6deF77"
+            sale: "0xFbA91e5540947CebCdA3e98670E244EE92d3098B",
+            saleV1: "0xa6a42699cF7903D45b9DD5eCa9C9CeFEaf6deF77"
         },
         bybStaking: {
             rewarder: "0x2A404C2F47Ffa68E3A58FdF1808A722908EA8b33",
@@ -25,7 +26,7 @@ export const address = {
         },
         bybStaking: {
             rewarder: "0xA12c5b8AAdDfC3458495Ec17A48c091d7EB0885e",
-            token: "0xDe7BBFc300C31AC706869f6a0141BDBBB92487FB",
+            token: "0x0b1456000381a8820865B8ecc7aB130d7859a862",
             nft: "0xAB6403e5FD77D266EE048Dc1CE0873bbE3Db7d77"
         }
     }

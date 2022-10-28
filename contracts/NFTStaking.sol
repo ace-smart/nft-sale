@@ -47,7 +47,6 @@ contract NFTStaking is ERC1155Holder, Ownable, Pausable, ReentrancyGuard {
     mapping(uint => uint) public weightMap;
 
     uint256 public rewardRate;
-    uint256 public claimTimes;
 
     uint public startTime;
     uint public endTime;
@@ -87,12 +86,11 @@ contract NFTStaking is ERC1155Holder, Ownable, Pausable, ReentrancyGuard {
 
     modifier updateUserList {
         _;
-        bool staked = false;
         if (userInfo[msg.sender].amount > 0) {
             _checkOrAddUser(msg.sender);
-            staked = true;
+        } else {
+            _removeUser(msg.sender);
         }
-        if (staked == false) _removeUser(msg.sender);
     }
 
     constructor(address _nft, address _rewarder) {
@@ -216,6 +214,7 @@ contract NFTStaking is ERC1155Holder, Ownable, Pausable, ReentrancyGuard {
 
     function setRewardRate(uint256 _rewardRate) public onlyOwner {
         require (_rewardRate > 0, "Rewards per second should be greater than 0!");
+        require (endTime >= block.timestamp, "expired");
 
         // Update pool infos with old reward rate before setting new one first
         if (rewardRate > 0 && lastRewardTime < block.timestamp) {
@@ -233,6 +232,13 @@ contract NFTStaking is ERC1155Holder, Ownable, Pausable, ReentrancyGuard {
     function setEndTime(uint _endTime) external onlyOwner {
         require (_endTime > block.timestamp, "!end time");
 
+        if (endTime < block.timestamp && totalSupply > 0 && rewardRate > 0) {
+            uint256 multiplier = block.timestamp.sub(lastRewardTime);
+            uint256 reward = multiplier.mul(rewardRate);
+            rewardsAmount += reward;
+            accEulerPerShare += reward.mul(1e12).div(totalSupply);
+            lastRewardTime = block.timestamp;
+        }
         endTime = _endTime;
     }
 
